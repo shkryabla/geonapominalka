@@ -1,6 +1,9 @@
 # Скопируйте этот файл в local.properties (в корне проекта).
-# local.properties НЕ должен попадать в систему контроля версий.
+# local.properties НЕ должен попадать в систему контроля версий (уже добавлен в .gitignore).
 #
-# Карта в проекте — OSMDroid (OpenStreetMap), API-ключ НЕ требуется.
+# Карта в проекте — OSMDroid (OpenStreetMap), собственного ключа не требует.
+# Но с 2026 года базовые слои CARTO Basemaps (обычная схема и Voyager) требуют
+# бесплатный API-ключ (иначе водяной знак на тайлах) — получить на carto.com/basemaps/apikey.
 
 sdk.dir=/path/to/Android/sdk
+CARTO_API_KEY=ваш_ключ_carto_здесь

@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -10,6 +13,18 @@ base {
     archivesName.set("napomniTut")
 }
 
+// Ключ CARTO Basemaps API (требуется с 2026 года для растровых тайлов, иначе водяной знак).
+// Источник — по приоритету: local.properties (локальная разработка, файл в .gitignore,
+// никогда не коммитится) -> переменная окружения CARTO_API_KEY (для GitHub Actions,
+// куда её прокидывает Repository Secret). Значение самого ключа никогда не попадает в git.
+val localProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(FileInputStream(f))
+}
+val cartoApiKey: String = localProperties.getProperty("CARTO_API_KEY")
+    ?: System.getenv("CARTO_API_KEY")
+    ?: ""
+
 android {
     namespace = "com.example.geonapominalka"
     compileSdk = 34
@@ -20,6 +35,7 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "CARTO_API_KEY", "\"$cartoApiKey\"")
     }
 
     buildTypes {
@@ -38,6 +54,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 

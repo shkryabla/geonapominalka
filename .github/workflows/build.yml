@@ -19,6 +19,8 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build debug APK
+        env:
+          CARTO_API_KEY: ${{ secrets.CARTO_API_KEY }}
         run: ./gradlew assembleDebug
 
       - name: Upload APK artifact

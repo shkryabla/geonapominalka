@@ -1,0 +1,20 @@
+# Локальные настройки со секретами (API-ключи и т.п.) — никогда не коммитить
+local.properties
+
+# Сборочные артефакты
+*.iml
+.gradle/
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# Android Studio / IntelliJ
+.idea/
+*.iws
+*.ipr
+
+# Локальные конфиги
+.DS_Store

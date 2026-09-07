@@ -1,16 +1,24 @@
 package com.example.geonapominalka.util
 
+import com.example.geonapominalka.BuildConfig
 import org.osmdroid.tileprovider.tilesource.ITileSource
 import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.MapTileIndex
 
 /**
- * Бесплатные тайл-источники без API-ключа.
+ * Тайл-источники карты.
  *
  * ВАЖНО: TileSourceFactory.MAPNIK (штатный источник osmdroid) бьёт напрямую в
  * tile.openstreetmap.org — этот сервер официально не предназначен для встраивания
  * в приложения и активно блокирует такие запросы (403 Forbidden), даже с корректным
  * User-Agent.
+ *
+ * С 2026 года растровые (PNG) базовые слои CARTO Basemaps требуют бесплатный
+ * API-ключ — без него на тайлах появляется водяной знак "API key required".
+ * Ключ подставляется через BuildConfig.CARTO_API_KEY (см. app/build.gradle.kts —
+ * читается из local.properties локально или из переменной окружения в CI,
+ * само значение никогда не попадает в git). Спутник (Esri) отдельный провайдер,
+ * ключа пока не требует.
  *
  * У CARTO нет отдельных переключаемых слоёв (типа "номера домов вкл/выкл") — это
  * готовые растровые стили, и ни один из них номера домов не показывает вообще
@@ -23,8 +31,12 @@ import org.osmdroid.util.MapTileIndex
  */
 object TileSources {
 
+    /** Дописывает API-ключ CARTO к готовому URL тайла, если ключ задан (иначе — водяной знак). */
+    private fun withCartoKey(url: String): String =
+        if (BuildConfig.CARTO_API_KEY.isNotBlank()) "$url?key=${BuildConfig.CARTO_API_KEY}" else url
+
     /** Минималистичная светлая схема CARTO Positron — быстрая, без номеров домов. */
-    val cartoLight: ITileSource = XYTileSource(
+    val cartoLight: ITileSource = object : XYTileSource(
         "CartoLight", 0, 19, 256, ".png",
         arrayOf(
             "https://a.basemaps.cartocdn.com/light_all/",
@@ -32,10 +44,12 @@ object TileSources {
             "https://c.basemaps.cartocdn.com/light_all/",
             "https://d.basemaps.cartocdn.com/light_all/"
         )
-    )
+    ) {
+        override fun getTileURLString(pMapTileIndex: Long): String = withCartoKey(super.getTileURLString(pMapTileIndex))
+    }
 
     /** Более "цветной" и подробный стиль CARTO Voyager (больше POI, но тоже без номеров домов). */
-    val cartoVoyager: ITileSource = XYTileSource(
+    val cartoVoyager: ITileSource = object : XYTileSource(
         "CartoVoyager", 0, 19, 256, ".png",
         arrayOf(
             "https://a.basemaps.cartocdn.com/rastertiles/voyager/",
@@ -43,7 +57,9 @@ object TileSources {
             "https://c.basemaps.cartocdn.com/rastertiles/voyager/",
             "https://d.basemaps.cartocdn.com/rastertiles/voyager/"
         )
-    )
+    ) {
+        override fun getTileURLString(pMapTileIndex: Long): String = withCartoKey(super.getTileURLString(pMapTileIndex))
+    }
 
     val esriSatellite: ITileSource = object : XYTileSource(
         "EsriWorldImagery", 0, 19, 256, ".jpg",
@@ -60,8 +76,9 @@ object TileSources {
     /**
      * Полупрозрачный слой ТОЛЬКО с подписями (без заливки) от CARTO — накладывается
      * поверх спутникового снимка, чтобы получить "гибридный" режим (снимок + названия/дороги).
+     * Тоже растровый CARTO-слой — тот же ключ нужен и здесь.
      */
-    val labelsOverlay: ITileSource = XYTileSource(
+    val labelsOverlay: ITileSource = object : XYTileSource(
         "CartoLabelsOnly", 0, 19, 256, ".png",
         arrayOf(
             "https://a.basemaps.cartocdn.com/light_only_labels/",
@@ -69,7 +86,9 @@ object TileSources {
             "https://c.basemaps.cartocdn.com/light_only_labels/",
             "https://d.basemaps.cartocdn.com/light_only_labels/"
         )
-    )
+    ) {
+        override fun getTileURLString(pMapTileIndex: Long): String = withCartoKey(super.getTileURLString(pMapTileIndex))
+    }
 
     /** Порядок пунктов в переключателе на карте и в настройках — должен совпадать в обоих местах. */
     enum class MapStyle(val tileSource: ITileSource, val isHybrid: Boolean = false) {

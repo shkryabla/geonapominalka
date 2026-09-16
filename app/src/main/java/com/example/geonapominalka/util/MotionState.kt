@@ -1,9 +1,7 @@
 package com.example.geonapominalka.util
-
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
 /**
  * Текущий тип активности (DetectedActivity.*) от Activity Recognition — общее состояние
  * между ActivityTransitionReceiver (получает системные broadcast) и LocationForegroundService
@@ -13,7 +11,6 @@ import kotlinx.coroutines.flow.asStateFlow
 object MotionState {
     private val _currentActivityType = MutableStateFlow<Int?>(null)
     val currentActivityType: StateFlow<Int?> = _currentActivityType.asStateFlow()
-
     fun update(activityType: Int) {
         _currentActivityType.value = activityType
     }

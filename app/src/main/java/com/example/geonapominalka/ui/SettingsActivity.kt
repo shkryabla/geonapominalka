@@ -1,5 +1,4 @@
 package com.example.geonapominalka.ui
-
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
@@ -14,23 +13,24 @@ import androidx.lifecycle.lifecycleScope
 import com.example.geonapominalka.GeoApp
 import com.example.geonapominalka.R
 import com.example.geonapominalka.databinding.ActivitySettingsBinding
+import com.example.geonapominalka.util.NotificationChannels
 import com.example.geonapominalka.util.TileSources
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-
 /** Настройки приложения (п.1.7 ТЗ): тема, звук, вибрация, частота опроса, сброс данных. */
 class SettingsActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var app: GeoApp
-
     private val pickRingtone = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-            lifecycleScope.launch { app.settingsRepository.setSoundUri(uri?.toString()) }
+            lifecycleScope.launch {
+                app.settingsRepository.setSoundUri(uri?.toString())
+                NotificationChannels.rebuildReminderChannel(this@SettingsActivity, uri, binding.switchVibration.isChecked)
+            }
         }
     }
-
     // Повторный запрос ACTIVITY_RECOGNITION при включении адаптивного режима, если разрешение не выдано
     private val requestActivityRecognition = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -42,14 +42,12 @@ class SettingsActivity : AppCompatActivity() {
             ).show()
         }
     }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         app = GeoApp.from(this)
-
         setupTheme()
         setupAdaptiveModeAndInterval()
         setupInterval()
@@ -58,7 +56,6 @@ class SettingsActivity : AppCompatActivity() {
         setupSound()
         setupReset()
     }
-
     private fun setupTheme() {
         lifecycleScope.launch {
             app.settingsRepository.theme.collect { theme ->
@@ -79,7 +76,6 @@ class SettingsActivity : AppCompatActivity() {
             lifecycleScope.launch { app.settingsRepository.setTheme(value) }
         }
     }
-
     /**
      * Адаптивный режим — главнее ручного интервала: список фиксированных значений
      * остаётся видимым, но дизейблится, пока адаптивный режим включён (п.6 обсуждения).
@@ -103,7 +99,6 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
     }
-
     private fun showActivityRecognitionRationale() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dialog_activity_recognition_title)
@@ -115,19 +110,16 @@ class SettingsActivity : AppCompatActivity() {
             .setNegativeButton(R.string.action_cancel) { dialog, _ -> dialog.dismiss() }
             .show()
     }
-
     private fun hasActivityRecognitionPermission(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) ==
             PackageManager.PERMISSION_GRANTED
-
     private fun setIntervalGroupEnabled(enabled: Boolean) {
         binding.intervalGroup.alpha = if (enabled) 1.0f else 0.4f
         for (i in 0 until binding.intervalGroup.childCount) {
             binding.intervalGroup.getChildAt(i).isEnabled = enabled
         }
     }
-
     private fun setupInterval() {
         lifecycleScope.launch {
             app.settingsRepository.intervalSeconds.collect { seconds ->
@@ -154,7 +146,6 @@ class SettingsActivity : AppCompatActivity() {
             lifecycleScope.launch { app.settingsRepository.setIntervalSeconds(seconds) }
         }
     }
-
     /**
      * Стиль карты (п.1.7 ТЗ, "выбор провайдера карт" — реализовано как выбор стиля/слоя,
      * т.к. у бесплатных провайдеров без ключа нет отдельного переключателя "провайдер").
@@ -169,7 +160,6 @@ class SettingsActivity : AppCompatActivity() {
             TileSources.MapStyle.HYBRID to R.id.radioStyleHybrid
         )
         val styleById = idByStyle.entries.associate { (style, id) -> id to style }
-
         lifecycleScope.launch {
             app.settingsRepository.mapType.collect { index ->
                 val id = idByStyle.getValue(TileSources.MapStyle.fromIndex(index))
@@ -181,7 +171,6 @@ class SettingsActivity : AppCompatActivity() {
             lifecycleScope.launch { app.settingsRepository.setMapType(style.ordinal) }
         }
     }
-
     private fun setupVibration() {
         lifecycleScope.launch {
             app.settingsRepository.vibration.collect { enabled ->
@@ -189,10 +178,13 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         binding.switchVibration.setOnCheckedChangeListener { _, checked ->
-            lifecycleScope.launch { app.settingsRepository.setVibration(checked) }
+            lifecycleScope.launch {
+                app.settingsRepository.setVibration(checked)
+                val soundUri = app.settingsRepository.soundUri.first()?.let { Uri.parse(it) }
+                NotificationChannels.rebuildReminderChannel(this@SettingsActivity, soundUri, checked)
+            }
         }
     }
-
     private fun setupSound() {
         binding.btnChooseSound.setOnClickListener {
             val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
@@ -203,7 +195,6 @@ class SettingsActivity : AppCompatActivity() {
             pickRingtone.launch(intent)
         }
     }
-
     private fun setupReset() {
         binding.btnResetData.setOnClickListener {
             MaterialAlertDialogBuilder(this)
@@ -216,7 +207,6 @@ class SettingsActivity : AppCompatActivity() {
                 .show()
         }
     }
-
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true

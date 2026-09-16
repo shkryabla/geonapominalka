@@ -4,7 +4,6 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:paddingVertical="4dp">
-
     <TextView
         android:id="@+id/logTime"
         android:layout_width="wrap_content"
@@ -13,7 +12,6 @@
         android:textColor="#78909C"
         android:textSize="12sp"
         android:layout_marginEnd="8dp" />
-
     <TextView
         android:id="@+id/logTag"
         android:layout_width="wrap_content"
@@ -23,7 +21,6 @@
         android:textSize="12sp"
         android:textStyle="bold"
         android:layout_marginEnd="8dp" />
-
     <TextView
         android:id="@+id/logMessage"
         android:layout_width="0dp"
@@ -32,5 +29,4 @@
         android:fontFamily="monospace"
         android:textColor="#E0E0E0"
         android:textSize="12sp" />
-
 </LinearLayout>

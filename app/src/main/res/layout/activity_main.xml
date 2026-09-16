@@ -5,24 +5,20 @@
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-
         <!-- Карта на весь экран (OSMDroid) -->
         <org.osmdroid.views.MapView
             android:id="@+id/mapView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
-
         <!-- Прозрачный тулбар поверх карты: бургер-меню слева, тип карты справа -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:layout_constraintTop_toTopOf="parent" />
-
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnMenu"
             android:layout_width="wrap_content"
@@ -33,7 +29,6 @@
             app:srcCompat="@drawable/ic_menu"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
-
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnMapType"
             android:layout_width="wrap_content"
@@ -44,7 +39,6 @@
             app:srcCompat="@drawable/ic_layers"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
-
         <!-- Зум +/- по центру справа -->
         <LinearLayout
             android:layout_width="wrap_content"
@@ -54,7 +48,6 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginEnd="12dp">
-
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/btnZoomIn"
                 android:layout_width="wrap_content"
@@ -63,7 +56,6 @@
                 android:contentDescription="@string/cd_zoom_in"
                 app:backgroundTint="@color/graphite"
                 app:srcCompat="@drawable/ic_add" />
-
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/btnZoomOut"
                 android:layout_width="wrap_content"
@@ -72,7 +64,6 @@
                 app:backgroundTint="@color/graphite"
                 app:srcCompat="@drawable/ic_remove" />
         </LinearLayout>
-
         <!-- Моё местоположение снизу справа -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnMyLocation"
@@ -85,7 +76,6 @@
             app:srcCompat="@drawable/ic_my_location"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toTopOf="@id/searchField" />
-
         <!-- Поле поиска намеренно всегда светлое (белый фон, тёмный текст) — оно лежит
              поверх карты и должно одинаково хорошо читаться и в светлой, и в тёмной теме. -->
         <com.google.android.material.textfield.TextInputEditText
@@ -107,7 +97,6 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
-
         <!-- Мелкая полупрозрачная подпись с размером кэша тайлов — только для отладки/
              визуального контроля, легко убрать целиком (см. cacheSizeLabel в коде). -->
         <TextView
@@ -124,14 +113,11 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toTopOf="@id/searchField"
             tools:text="Кэш: 0 МБ" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
-
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navView"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         app:menu="@menu/drawer_menu" />
-
 </androidx.drawerlayout.widget.DrawerLayout>

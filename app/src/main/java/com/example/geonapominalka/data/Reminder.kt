@@ -1,8 +1,6 @@
 package com.example.geonapominalka.data
-
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-
 /**
  * Статус напоминания.
  * ACTIVE  — задача активна и отслеживается сервисом.
@@ -15,7 +13,6 @@ object ReminderStatus {
     const val ACTIVE = "active"
     const val DONE = "done"
 }
-
 @Entity(tableName = "reminders")
 data class Reminder(
     @PrimaryKey(autoGenerate = true)

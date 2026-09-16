@@ -2,19 +2,16 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
-
         <TextView
             style="@style/TextAppearance.Material3.TitleMedium"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/label_theme" />
-
         <RadioGroup
             android:id="@+id/themeGroup"
             android:layout_width="match_parent"
@@ -23,14 +20,12 @@
             <RadioButton android:id="@+id/radioThemeDark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/theme_dark" />
             <RadioButton android:id="@+id/radioThemeSystem" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/theme_system" />
         </RadioGroup>
-
         <TextView
             style="@style/TextAppearance.Material3.TitleMedium"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="@string/label_interval" />
-
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchAdaptiveMode"
             android:layout_width="match_parent"
@@ -38,7 +33,6 @@
             android:layout_marginTop="8dp"
             android:checked="true"
             android:text="@string/label_adaptive_mode" />
-
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -47,7 +41,6 @@
             android:alpha="0.6"
             android:text="@string/label_adaptive_mode_hint"
             android:textSize="13sp" />
-
         <RadioGroup
             android:id="@+id/intervalGroup"
             android:layout_width="match_parent"
@@ -59,14 +52,12 @@
             <RadioButton android:id="@+id/radioInterval600" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/interval_600s" />
             <RadioButton android:id="@+id/radioInterval1200" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/interval_1200s" />
         </RadioGroup>
-
         <TextView
             style="@style/TextAppearance.Material3.TitleMedium"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="@string/label_map_style" />
-
         <RadioGroup
             android:id="@+id/mapStyleGroup"
             android:layout_width="match_parent"
@@ -76,14 +67,12 @@
             <RadioButton android:id="@+id/radioStyleSatellite" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/map_style_satellite" />
             <RadioButton android:id="@+id/radioStyleHybrid" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/map_style_hybrid" />
         </RadioGroup>
-
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchVibration"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="@string/label_vibration" />
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnChooseSound"
             style="@style/Widget.Material3.Button.OutlinedButton"
@@ -91,7 +80,6 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="@string/action_choose_sound" />
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnResetData"
             style="@style/Widget.Material3.Button.TextButton"
@@ -100,6 +88,5 @@
             android:layout_marginTop="32dp"
             android:text="@string/action_reset_data"
             android:textColor="?attr/colorError" />
-
     </LinearLayout>
 </ScrollView>

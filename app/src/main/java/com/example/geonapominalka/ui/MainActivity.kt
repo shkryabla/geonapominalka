@@ -1,5 +1,4 @@
 package com.example.geonapominalka.ui
-
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -25,8 +24,10 @@ import com.example.geonapominalka.databinding.ActivityMainBinding
 import com.example.geonapominalka.util.Constants
 import com.example.geonapominalka.util.TileSources
 import com.example.geonapominalka.util.NominatimGeocoder
+import com.example.geonapominalka.util.OverpassCategorySearch
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import androidx.drawerlayout.widget.DrawerLayout
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -39,29 +40,22 @@ import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.TilesOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
-
 class MainActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityMainBinding
     private lateinit var map: MapView
     private lateinit var fusedClient: FusedLocationProviderClient
     private lateinit var viewModel: MainViewModel
     private lateinit var myLocationOverlay: MyLocationNewOverlay
-
     // reminder.id -> Marker, чтобы удалять/сопоставлять при клике
     private val markerByReminderId = HashMap<Long, Marker>()
     private var currentStyle = TileSources.MapStyle.LIGHT
-
     // Оверлей подписей для гибридного режима (снимок + названия/дороги поверх)
     private var labelsOverlay: TilesOverlay? = null
-
     // Маркер результата поиска адреса — один на экран, обновляется при новом поиске
     private var searchMarker: Marker? = null
-
     // Чтобы не пересобрать пользователя на карту повторно после первого раза
     // (например, если он сам куда-то проскроллил карту)
     private var hasCenteredOnUser = false
-
     private val requestPermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
@@ -73,38 +67,30 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.msg_location_required, Toast.LENGTH_LONG).show()
         }
     }
-
     private val requestBackgroundPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* фон - опционально, приложение продолжит работать в активном режиме */ }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         val app = GeoApp.from(this)
         viewModel = ViewModelProvider(
             this,
             MainViewModel.Factory(app.reminderRepository, app.settingsRepository)
         )[MainViewModel::class.java]
-
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
-
         setupMap()
         setupToolbarAndDrawer()
         setupControls()
         startCacheSizeMonitor()
-
         requestAllPermissionsIfNeeded()
     }
-
     private fun setupMap() {
         map = binding.mapView
         map.setMultiTouchControls(true)
         map.controller.setZoom(14.0)
         map.controller.setCenter(GeoPoint(55.7558, 37.6173)) // запасной центр, если геопозиция недоступна — сместится на неё сразу, как получим координаты
-
         // Долгий тап по карте -> создание напоминания (п.1.2 ТЗ)
         val mapEventsReceiver = object : MapEventsReceiver {
             override fun singleTapConfirmedHelper(p: GeoPoint?) = false
@@ -115,7 +101,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         map.overlays.add(MapEventsOverlay(mapEventsReceiver))
-
         // Курсор "моё местоположение" в цвете E65100 вместо стандартного синего —
         // штатные иконки заменены на кастомные точку/стрелку.
         myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), map).apply {
@@ -126,12 +111,9 @@ class MainActivity : AppCompatActivity() {
             setDirectionIcon(arrow)
             setDirectionAnchor(0.5f, 0.5f)
         }
-
         viewModel.mapType.observe(this) { index -> applyMapStyle(TileSources.MapStyle.fromIndex(index)) }
-
         viewModel.activeReminders.observe(this) { reminders -> renderMarkers(reminders) }
     }
-
     private fun drawableToBitmap(drawable: Drawable): Bitmap {
         if (drawable is BitmapDrawable) return drawable.bitmap
         val width = drawable.intrinsicWidth.coerceAtLeast(1)
@@ -142,7 +124,6 @@ class MainActivity : AppCompatActivity() {
         drawable.draw(canvas)
         return bitmap
     }
-
     /**
      * Мелкая подпись с размером дискового кэша тайлов — только для отладки/визуального
      * контроля (см. обсуждение с пользователем). Обновляется раз в 5 секунд, пока экран
@@ -168,15 +149,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     private fun setupToolbarAndDrawer() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
-
+        // Открытие только по кнопке-бургеру — edge-свайп конфликтует с жестами зума карты
+        binding.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
         binding.btnMenu.setOnClickListener {
             binding.drawerLayout.openDrawer(Gravity.START)
         }
-
         binding.navView.setNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_task_manager -> startActivity(Intent(this, TaskListActivity::class.java))
@@ -189,7 +169,6 @@ class MainActivity : AppCompatActivity() {
             true
         }
     }
-
     /**
      * Полное закрытие приложения (в отличие от обычного "Выхода"): останавливает
      * foreground-сервис геолокации явно, независимо от количества активных задач,
@@ -212,7 +191,6 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton(R.string.action_no) { dialog, _ -> dialog.dismiss() }
             .show()
     }
-
     private fun forceCloseApp() {
         stopService(Intent(this, com.example.geonapominalka.service.LocationForegroundService::class.java))
         androidx.core.app.NotificationManagerCompat.from(this).cancelAll()
@@ -221,19 +199,16 @@ class MainActivity : AppCompatActivity() {
         // висеть в фоне после явного запроса пользователя на полное закрытие.
         android.os.Process.killProcess(android.os.Process.myPid())
     }
-
     private fun setupControls() {
         binding.btnMyLocation.setOnClickListener { moveToMyLocation() }
         binding.btnZoomIn.setOnClickListener { map.controller.zoomIn() }
         binding.btnZoomOut.setOnClickListener { map.controller.zoomOut() }
         binding.btnMapType.setOnClickListener { toggleMapType() }
-
         binding.searchField.setOnEditorActionListener { _, _, _ ->
             searchAddress(binding.searchField.text.toString())
             true
         }
     }
-
     /** Переключает стиль карты по кругу и сохраняет выбор в настройках (синхронизировано с SettingsActivity). */
     private fun toggleMapType() {
         val styles = TileSources.MapStyle.entries
@@ -241,7 +216,6 @@ class MainActivity : AppCompatActivity() {
         applyMapStyle(next)
         viewModel.setMapType(next.ordinal)
     }
-
     /**
      * Применяет выбранный стиль карты. Для HYBRID отдельно накладывает полупрозрачный
      * слой подписей (labelsOverlay) поверх спутникового снимка — сам спутниковый
@@ -250,10 +224,8 @@ class MainActivity : AppCompatActivity() {
     private fun applyMapStyle(style: TileSources.MapStyle) {
         currentStyle = style
         map.setTileSource(style.tileSource)
-
         labelsOverlay?.let { map.overlays.remove(it) }
         labelsOverlay = null
-
         if (style.isHybrid) {
             val provider = MapTileProviderBasic(this, TileSources.labelsOverlay)
             val overlay = TilesOverlay(provider, this).apply { loadingBackgroundColor = android.graphics.Color.TRANSPARENT }
@@ -264,7 +236,6 @@ class MainActivity : AppCompatActivity() {
         }
         map.invalidate()
     }
-
     /**
      * Поиск адреса с приоритетом по текущему местоположению пользователя.
      *
@@ -277,20 +248,26 @@ class MainActivity : AppCompatActivity() {
      */
     private fun searchAddress(query: String) {
         if (query.isBlank()) return
-
         lifecycleScope.launch {
             val lastLocation = try {
                 if (hasFineLocationPermission()) fusedClient.lastLocation.await() else null
             } catch (e: Exception) {
                 null
             }
-
-            val result = try {
+            // Запрос-категория ("почта", "аптека" и т.п.) — через Overpass, он ищет по OSM-тегу
+            // в радиусе и сортирует по реальному расстоянию (в отличие от Nominatim, который
+            // ранжирует по "важности" объекта и мог вернуть отделение в 40км вместо соседнего).
+            val categoryTag = OverpassCategorySearch.matchCategory(query)
+            val categoryResult = if (categoryTag != null && lastLocation != null) {
+                OverpassCategorySearch.searchNearby(categoryTag, lastLocation.latitude, lastLocation.longitude)
+            } else null
+            val result = categoryResult?.let {
+                NominatimGeocoder.Result(it.latitude, it.longitude, it.displayName)
+            } ?: try {
                 NominatimGeocoder.search(query, lastLocation?.latitude, lastLocation?.longitude)
             } catch (e: Exception) {
                 null
             }
-
             if (result != null) {
                 val point = GeoPoint(result.latitude, result.longitude)
                 map.controller.animateTo(point)
@@ -301,7 +278,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     /** Булавка результата поиска адреса — отдельная от булавок задач (синий цвет). */
     private fun showSearchResultMarker(point: GeoPoint, title: String) {
         searchMarker?.let { map.overlays.remove(it) }
@@ -316,7 +292,6 @@ class MainActivity : AppCompatActivity() {
         marker.showInfoWindow()
         map.invalidate()
     }
-
     /**
      * п.1.2 ТЗ: долгое нажатие открывает диалог с кнопкой "Напомнить здесь".
      * Диалог показывается сразу с координатами (без задержки на сеть), адрес
@@ -327,7 +302,6 @@ class MainActivity : AppCompatActivity() {
     private fun showCreateReminderDialog(point: GeoPoint) {
         var resolvedAddress: String? = null
         val coordinatesLine = getString(R.string.dialog_create_message, point.latitude, point.longitude)
-
         val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dialog_create_title)
             .setMessage("$coordinatesLine\n${getString(R.string.msg_resolving_address)}")
@@ -343,7 +317,6 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton(R.string.action_cancel) { d, _ -> d.dismiss() }
             .create()
         dialog.show()
-
         val job = lifecycleScope.launch {
             val address = try {
                 NominatimGeocoder.reverse(point.latitude, point.longitude)
@@ -356,7 +329,6 @@ class MainActivity : AppCompatActivity() {
         }
         dialog.setOnDismissListener { job.cancel() }
     }
-
     /** п.1.4 ТЗ: клик по маркеру -> подтверждение удаления. Показываем название и описание,
      *  чтобы было понятно, какую именно задачу удаляем. */
     private fun onMarkerClicked(reminderId: Long) {
@@ -371,7 +343,6 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton(R.string.action_no) { dialog, _ -> dialog.dismiss() }
             .show()
     }
-
     private fun buildDeleteConfirmationMessage(name: String, description: String?): String = buildString {
         append(getString(R.string.dialog_delete_task_name_line, name))
         if (!description.isNullOrBlank()) {
@@ -379,7 +350,6 @@ class MainActivity : AppCompatActivity() {
             append(getString(R.string.dialog_delete_task_description_line, description))
         }
     }
-
     private fun renderMarkers(reminders: List<Reminder>) {
         val currentIds = reminders.map { it.id }.toSet()
         val toRemove = markerByReminderId.keys.filter { it !in currentIds }
@@ -387,7 +357,6 @@ class MainActivity : AppCompatActivity() {
             markerByReminderId[id]?.let { map.overlays.remove(it) }
             markerByReminderId.remove(id)
         }
-
         for (reminder in reminders) {
             val existing = markerByReminderId[reminder.id]
             if (existing == null) {
@@ -410,7 +379,6 @@ class MainActivity : AppCompatActivity() {
         }
         map.invalidate()
     }
-
     private fun moveToMyLocation() {
         if (!hasFineLocationPermission()) {
             requestAllPermissionsIfNeeded()
@@ -423,7 +391,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     private fun enableMyLocationLayer() {
         if (hasFineLocationPermission() && !map.overlays.contains(myLocationOverlay)) {
             myLocationOverlay.enableMyLocation()
@@ -431,7 +398,6 @@ class MainActivity : AppCompatActivity() {
         }
         centerOnUserLocationIfNeeded()
     }
-
     /**
      * Старт карты на позиции пользователя вместо дефолтных координат: как только
      * известна последняя геопозиция, один раз перецентровываем карту на неё.
@@ -446,26 +412,21 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     private fun hasFineLocationPermission(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
-
     private fun hasBackgroundLocationPermission(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
-
     private fun hasNotificationPermission(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
-
     private fun hasActivityRecognitionPermission(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) ==
             PackageManager.PERMISSION_GRANTED
-
     /**
      * При первом запуске (и при каждом последующем, пока не выдано) объясняем, зачем нужны
      * разрешения, и запрашиваем их по шагам, как требует Android 10+:
@@ -494,7 +455,6 @@ class MainActivity : AppCompatActivity() {
             requestBackgroundPermissionIfNeeded()
         }
     }
-
     private fun requestRuntimePermissions() {
         val permissions = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -508,7 +468,6 @@ class MainActivity : AppCompatActivity() {
         }
         requestPermissions.launch(permissions.toTypedArray())
     }
-
     /**
      * Отдельный диалог именно про "Разрешить в любом режиме" — показываем на каждом запуске,
      * пока разрешение не выдано (сознательно, по просьбе — это критично для работы приложения,
@@ -532,19 +491,16 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton(R.string.action_not_now) { dialog, _ -> dialog.dismiss() }
             .show()
     }
-
     private fun openAppSettings() {
         val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = android.net.Uri.fromParts("package", packageName, null)
         }
         startActivity(intent)
     }
-
     override fun onResume() {
         super.onResume()
         map.onResume()
     }
-
     override fun onPause() {
         super.onPause()
         map.onPause()

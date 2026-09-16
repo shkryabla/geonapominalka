@@ -1,5 +1,4 @@
 package com.example.geonapominalka.service
-
 import android.Manifest
 import android.app.PendingIntent
 import android.app.Service
@@ -29,7 +28,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-
 /**
  * Foreground-сервис, отслеживающий текущее местоположение и сверяющий его
  * со всеми активными задачами из БД. При входе в радиус — уведомление
@@ -43,39 +41,31 @@ import kotlinx.coroutines.flow.first
  * читается из настроек в реальном времени.
  */
 class LocationForegroundService : Service() {
-
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var fusedClient: FusedLocationProviderClient
     private lateinit var activityRecognitionClient: ActivityRecognitionClient
     private var locationCallback: LocationCallback? = null
-
     private var currentAppliedIntervalSeconds: Int = 60
     private var adaptiveModeEnabled = false
     private var activityTransitionsRegistered = false
     private var settingsObserverStarted = false
-
     private val app: GeoApp by lazy { GeoApp.from(this) }
-
     private val activityTransitionPendingIntent: PendingIntent by lazy {
         val intent = Intent(this, ActivityTransitionReceiver::class.java)
         PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
     }
-
     override fun onCreate() {
         super.onCreate()
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
         activityRecognitionClient = ActivityRecognition.getClient(this)
     }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForegroundWithNotification()
-
         if (!settingsObserverStarted) {
             settingsObserverStarted = true
             observeSettings()
             observeMotionForInstantTrigger()
         }
-
         if (locationCallback == null) {
             serviceScope.launch {
                 val manual = app.settingsRepository.currentIntervalSeconds()
@@ -91,12 +81,10 @@ class LocationForegroundService : Service() {
                 if (adaptive) registerActivityTransitionsIfPermitted()
             }
         }
-
         // START_STICKY: система пересоздаст сервис, если он был убит,
         // пока есть активные задачи (GeoApp снова его запустит при необходимости).
         return START_STICKY
     }
-
     /** Следим за настройками "живьём": ручной интервал и переключатель адаптивного режима. */
     private fun observeSettings() {
         serviceScope.launch {
@@ -105,7 +93,6 @@ class LocationForegroundService : Service() {
                 .collectLatest { (adaptive, manual) ->
                     val modeChanged = adaptive != adaptiveModeEnabled
                     adaptiveModeEnabled = adaptive
-
                     if (!adaptive) {
                         if (modeChanged) {
                             AppLogger.log("Location", "Адаптивный режим выключен, интервал: $manual сек")
@@ -124,7 +111,6 @@ class LocationForegroundService : Service() {
                 }
         }
     }
-
     /** Мгновенный триггер: переход из состояния "стоит" в любое движение -> внеочередной опрос местоположения. */
     private fun observeMotionForInstantTrigger() {
         serviceScope.launch {
@@ -140,7 +126,6 @@ class LocationForegroundService : Service() {
             }
         }
     }
-
     private fun requestSingleLocationUpdate() {
         try {
             fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, CancellationTokenSource().token)
@@ -149,15 +134,19 @@ class LocationForegroundService : Service() {
             // Разрешение отсутствует — тихо игнорируем, штатный опрос всё равно продолжит работать (или нет — см. startLocationUpdates)
         }
     }
-
     private fun startForegroundWithNotification() {
+        val contentIntent = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         val notification = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID)
             .setContentTitle(getString(R.string.foreground_notification_title))
             .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentIntent(contentIntent)
             .build()
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 Constants.FOREGROUND_NOTIFICATION_ID,
@@ -168,22 +157,18 @@ class LocationForegroundService : Service() {
             startForeground(Constants.FOREGROUND_NOTIFICATION_ID, notification)
         }
     }
-
     private fun startLocationUpdates(intervalSeconds: Int) {
         currentAppliedIntervalSeconds = intervalSeconds
-
         // Для длинных интервалов используем режим экономии батареи (п.1.6 ТЗ)
         val priority = if (intervalSeconds >= 60) {
             Priority.PRIORITY_BALANCED_POWER_ACCURACY
         } else {
             Priority.PRIORITY_HIGH_ACCURACY
         }
-
         val request = LocationRequest.Builder(intervalSeconds * 1000L)
             .setPriority(priority)
             .setMinUpdateIntervalMillis(intervalSeconds * 1000L / 2)
             .build()
-
         val callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 val location = result.lastLocation ?: return
@@ -191,7 +176,6 @@ class LocationForegroundService : Service() {
             }
         }
         locationCallback = callback
-
         try {
             fusedClient.requestLocationUpdates(request, callback, mainLooper)
         } catch (e: SecurityException) {
@@ -199,13 +183,11 @@ class LocationForegroundService : Service() {
             stopSelf()
         }
     }
-
     /** Пересоздаёт LocationRequest с новым интервалом (ручное изменение или пересчёт адаптивного). */
     private fun restartLocationUpdates(newIntervalSeconds: Int) {
         locationCallback?.let { fusedClient.removeLocationUpdates(it) }
         startLocationUpdates(newIntervalSeconds)
     }
-
     private fun handleNewLocation(location: Location) {
         AppLogger.log(
             "Location",
@@ -218,12 +200,10 @@ class LocationForegroundService : Service() {
             checkGeofences(location.latitude, location.longitude)
         }
     }
-
     /** Пересчёт адаптивного интервала по формуле d/(v*K) с поправками — см. AdaptiveIntervalCalculator. */
     private suspend fun recomputeAdaptiveInterval(location: Location) {
         val activeReminders = app.reminderRepository.getActiveOnce()
         if (activeReminders.isEmpty()) return
-
         var nearestDistance = Double.MAX_VALUE
         var nearestRadius = 200
         for (reminder in activeReminders) {
@@ -235,13 +215,11 @@ class LocationForegroundService : Service() {
                 nearestRadius = reminder.radius
             }
         }
-
         val activityType = MotionState.currentActivityType.value
         val velocity = resolveVelocity(location, activityType)
         val newInterval = AdaptiveIntervalCalculator.computeIntervalSeconds(
             nearestDistance, nearestRadius, velocity, activityType
         )
-
         if (AdaptiveIntervalCalculator.shouldUpdate(currentAppliedIntervalSeconds, newInterval)) {
             AppLogger.log(
                 "Adaptive",
@@ -252,7 +230,6 @@ class LocationForegroundService : Service() {
             restartLocationUpdates(newInterval)
         }
     }
-
     /**
      * Оценка скорости: предпочтительно по типу активности (типовая скорость для режима —
      * см. Constants.SPEED_*), запасной способ — скорость из самого GPS-фикса (location.speed),
@@ -263,7 +240,6 @@ class LocationForegroundService : Service() {
         location.hasSpeed() && location.speed > 0f -> location.speed.toDouble()
         else -> Constants.SPEED_DEFAULT_MPS
     }
-
     private fun activityName(type: Int?): String = when (type) {
         DetectedActivity.STILL -> "стоит"
         DetectedActivity.WALKING, DetectedActivity.ON_FOOT -> "пешком"
@@ -272,7 +248,6 @@ class LocationForegroundService : Service() {
         DetectedActivity.IN_VEHICLE -> "транспорт"
         else -> "неизв."
     }
-
     private fun registerActivityTransitionsIfPermitted() {
         if (activityTransitionsRegistered) return
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
@@ -302,20 +277,17 @@ class LocationForegroundService : Service() {
             AppLogger.log("Motion", "Нет разрешения на распознавание активности — скорость оценивается по GPS")
         }
     }
-
     private fun unregisterActivityTransitions() {
         if (!activityTransitionsRegistered) return
         activityRecognitionClient.removeActivityTransitionUpdates(activityTransitionPendingIntent)
         activityTransitionsRegistered = false
     }
-
     /** Основная логика геозон: перебираем активные задачи, сравниваем расстояние с радиусом. */
     private suspend fun checkGeofences(userLat: Double, userLng: Double) {
         val activeReminders = app.reminderRepository.getActiveOnce()
         for (reminder in activeReminders) {
             val distance = LocationUtils.distanceMeters(userLat, userLng, reminder.latitude, reminder.longitude)
             val inRadius = distance <= reminder.radius
-
             if (inRadius && !reminder.isInsideZone) {
                 // Только что вошли в зону
                 AppLogger.log(
@@ -339,7 +311,6 @@ class LocationForegroundService : Service() {
             }
         }
     }
-
     private suspend fun maybeNotify(reminder: Reminder) {
         val now = System.currentTimeMillis()
         val cooldownPassed = now - reminder.lastNotificationTime >= Constants.NOTIFICATION_COOLDOWN_MS
@@ -353,16 +324,13 @@ class LocationForegroundService : Service() {
             }
         }
     }
-
     private suspend fun showReminderNotification(reminder: Reminder) {
         val notificationId = Constants.REMINDER_NOTIFICATION_ID_BASE + reminder.id.toInt()
-
         val contentIntent = PendingIntent.getActivity(
             this, notificationId,
             Intent(this, MainActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
         val doneIntent = PendingIntent.getBroadcast(
             this, notificationId * 10 + 1,
             Intent(this, NotificationActionReceiver::class.java).apply {
@@ -371,7 +339,6 @@ class LocationForegroundService : Service() {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
         val snoozeIntent = PendingIntent.getBroadcast(
             this, notificationId * 10 + 2,
             Intent(this, NotificationActionReceiver::class.java).apply {
@@ -380,14 +347,12 @@ class LocationForegroundService : Service() {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
         // Настройки звука/вибрации берём из SettingsRepository (п.1.7 ТЗ)
         val soundUriString = app.settingsRepository.soundUri.first()
         val soundUri = soundUriString?.let { android.net.Uri.parse(it) }
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val vibrationEnabled = app.settingsRepository.vibration.first()
-
-        val builder = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, Constants.REMINDER_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(reminder.name)
             .setContentText(reminder.description.orEmpty())
@@ -399,14 +364,11 @@ class LocationForegroundService : Service() {
             .addAction(0, getString(R.string.action_done), doneIntent)
             .addAction(0, getString(R.string.action_snooze), snoozeIntent)
             .setSound(soundUri)
-
         if (vibrationEnabled) {
             builder.setVibrate(longArrayOf(0, 300, 200, 300))
         }
-
         NotificationManagerCompat.from(this).notify(notificationId, builder.build())
     }
-
     override fun onDestroy() {
         super.onDestroy()
         AppLogger.log("Location", "Сервис остановлен, опрос геолокации прекращён")
@@ -414,6 +376,5 @@ class LocationForegroundService : Service() {
         locationCallback?.let { fusedClient.removeLocationUpdates(it) }
         serviceScope.cancel()
     }
-
     override fun onBind(intent: Intent?): IBinder? = null
 }

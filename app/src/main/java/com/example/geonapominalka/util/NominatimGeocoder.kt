@@ -1,12 +1,10 @@
 package com.example.geonapominalka.util
-
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
-
 /**
  * Геокодер на базе Nominatim (OpenStreetMap) — бесплатно, без API-ключа.
  *
@@ -26,13 +24,10 @@ import java.net.URLEncoder
  * нажатию пользователя, укладывается в лимиты личного использования.
  */
 object NominatimGeocoder {
-
     private const val BASE_URL = "https://nominatim.openstreetmap.org/search"
     private const val REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
     private const val USER_AGENT = "GeoNapominalka-Android-App"
-
     data class Result(val latitude: Double, val longitude: Double, val displayName: String)
-
     /** Обратный геокодинг: координаты -> человекочитаемый адрес. Используется в диалоге
      *  создания напоминания, чтобы показать не только координаты, но и ближайший адрес. */
     suspend fun reverse(latitude: Double, longitude: Double): String? = withContext(Dispatchers.IO) {
@@ -54,12 +49,10 @@ object NominatimGeocoder {
             connection?.disconnect()
         }
     }
-
     suspend fun search(query: String, userLat: Double?, userLon: Double?): Result? =
         withContext(Dispatchers.IO) {
             // Область поиска в градусах: ~30км, ~150км, ~600км — от "своего города" до "своей страны"
             val boxSizesDegrees = listOf(0.3, 1.5, 6.0)
-
             if (userLat != null && userLon != null) {
                 for (box in boxSizesDegrees) {
                     val candidates = request(query, userLat, userLon, box)
@@ -68,21 +61,17 @@ object NominatimGeocoder {
                     }
                 }
             }
-
             // Ничего не нашли поблизости — ищем без ограничения области
             val unrestricted = request(query, userLat = null, userLon = null, boxDegrees = null)
             if (unrestricted.isEmpty()) return@withContext null
             if (userLat != null && userLon != null) nearestTo(unrestricted, userLat, userLon) else unrestricted.first()
         }
-
     private fun nearestTo(candidates: List<Result>, userLat: Double, userLon: Double): Result =
         candidates.minByOrNull { LocationUtils.distanceMeters(userLat, userLon, it.latitude, it.longitude) }!!
-
     private fun request(query: String, userLat: Double?, userLon: Double?, boxDegrees: Double?): List<Result> {
         val urlBuilder = StringBuilder(BASE_URL)
             .append("?format=json&limit=10&q=")
             .append(URLEncoder.encode(query, "UTF-8"))
-
         if (boxDegrees != null && userLat != null && userLon != null) {
             val left = userLon - boxDegrees
             val right = userLon + boxDegrees
@@ -90,7 +79,6 @@ object NominatimGeocoder {
             val bottom = userLat - boxDegrees
             urlBuilder.append("&viewbox=%s,%s,%s,%s&bounded=1".format(left, top, right, bottom))
         }
-
         var connection: HttpURLConnection? = null
         return try {
             connection = (URL(urlBuilder.toString()).openConnection() as HttpURLConnection).apply {

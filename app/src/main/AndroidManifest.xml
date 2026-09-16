@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
@@ -11,7 +10,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
     <application
         android:name=".GeoApp"
         android:allowBackup="true"
@@ -22,7 +20,6 @@
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="false">
-
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -32,47 +29,38 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".ui.TaskEditActivity"
             android:exported="false"
             android:label="@string/title_task_edit" />
-
         <activity
             android:name=".ui.TaskListActivity"
             android:exported="false"
             android:label="@string/title_task_list" />
-
         <activity
             android:name=".ui.SettingsActivity"
             android:exported="false"
             android:label="@string/title_settings" />
-
         <activity
             android:name=".ui.MapPickerActivity"
             android:exported="false"
             android:label="@string/title_map_picker" />
-
         <activity
             android:name=".ui.LogActivity"
             android:exported="false"
             android:label="@string/title_log" />
-
         <!-- Foreground-сервис геолокации. Запускается только когда есть активные задачи -->
         <service
             android:name=".service.LocationForegroundService"
             android:exported="false"
             android:foregroundServiceType="location" />
-
         <!-- Обработка кнопок "Выполнено" / "Отложить" в уведомлении -->
         <receiver
             android:name=".receiver.NotificationActionReceiver"
             android:exported="false" />
-
         <!-- Приём событий Activity Recognition (адаптивный алгоритм опроса местоположения) -->
         <receiver
             android:name=".service.ActivityTransitionReceiver"
             android:exported="false" />
-
     </application>
 </manifest>

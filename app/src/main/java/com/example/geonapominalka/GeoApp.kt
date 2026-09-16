@@ -1,11 +1,8 @@
 package com.example.geonapominalka
-
 import android.app.Application
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.net.Uri
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
@@ -14,30 +11,26 @@ import com.example.geonapominalka.data.AppDatabase
 import com.example.geonapominalka.data.ReminderRepository
 import com.example.geonapominalka.data.SettingsRepository
 import com.example.geonapominalka.service.LocationForegroundService
-import com.example.geonapominalka.util.Constants
+import com.example.geonapominalka.util.NotificationChannels
 import com.example.geonapominalka.util.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-
 class GeoApp : Application() {
-
     val database by lazy { AppDatabase.getInstance(this) }
     val reminderRepository by lazy { ReminderRepository(database.reminderDao()) }
     val settingsRepository by lazy { SettingsRepository(this) }
-
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
     override fun onCreate() {
         super.onCreate()
         configureOsmdroid()
-        createNotificationChannel()
+        createNotificationChannels()
         applySavedTheme()
         observeActiveTaskCount()
     }
-
     /**
      * OSMDroid требует явный User-Agent (иначе публичные тайл-сервера OSM банят запросы)
      * и путь для кэша тайлов. Ключ API не нужен — сервис полностью бесплатный.
@@ -53,7 +46,6 @@ class GeoApp : Application() {
     private fun configureOsmdroid() {
         Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
         Configuration.getInstance().userAgentValue = packageName
-
         val cacheDir = getExternalFilesDir("osmdroid_tiles") ?: cacheDir
         Configuration.getInstance().osmdroidBasePath = cacheDir
         Configuration.getInstance().osmdroidTileCache = cacheDir
@@ -62,22 +54,14 @@ class GeoApp : Application() {
         Configuration.getInstance().tileFileSystemCacheMaxBytes = TILE_CACHE_MAX_BYTES
         Configuration.getInstance().tileFileSystemCacheTrimBytes = TILE_CACHE_TRIM_BYTES
     }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = getSystemService(NotificationManager::class.java)
-            val channel = NotificationChannel(
-                Constants.NOTIFICATION_CHANNEL_ID,
-                getString(R.string.notification_channel_name),
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = getString(R.string.notification_channel_description)
-                enableVibration(true)
-            }
-            manager.createNotificationChannel(channel)
+    /** Канал прихода в зону создаётся сразу с сохранённым звуком/вибрацией из настроек. */
+    private fun createNotificationChannels() {
+        appScope.launch {
+            val soundUri = settingsRepository.soundUri.first()?.let { Uri.parse(it) }
+            val vibration = settingsRepository.vibration.first()
+            NotificationChannels.ensureCreated(this@GeoApp, soundUri, vibration)
         }
     }
-
     private fun applySavedTheme() {
         appScope.launch {
             settingsRepository.theme.collectLatest { theme ->
@@ -90,7 +74,6 @@ class GeoApp : Application() {
             }
         }
     }
-
     /**
      * Ключевая логика п.1.6 ТЗ: сервис геолокации запускается автоматически,
      * как только в базе появляется хотя бы одна активная задача, и
@@ -109,22 +92,18 @@ class GeoApp : Application() {
             }
         }
     }
-
     private fun startLocationService() {
         AppLogger.log("GeoApp", "Активных задач > 0 — запускаю foreground-сервис геолокации")
         val intent = Intent(this, LocationForegroundService::class.java)
         ContextCompat.startForegroundService(this, intent)
     }
-
     private fun stopLocationService() {
         AppLogger.log("GeoApp", "Активных задач нет — останавливаю сервис геолокации")
         stopService(Intent(this, LocationForegroundService::class.java))
     }
-
     companion object {
         private const val TILE_CACHE_MAX_BYTES = 300L * 1024 * 1024 // 300 МБ
         private const val TILE_CACHE_TRIM_BYTES = 250L * 1024 * 1024 // до скольки чистим при превышении лимита
-
         fun from(context: Context): GeoApp = context.applicationContext as GeoApp
     }
 }

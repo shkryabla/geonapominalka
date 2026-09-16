@@ -5,27 +5,23 @@
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
     app:cardElevation="1dp">
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="12dp">
-
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical">
-
             <TextView
                 android:id="@+id/taskName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textStyle="bold"
                 android:textSize="16sp" />
-
             <TextView
                 android:id="@+id/taskCoordinates"
                 android:layout_width="match_parent"
@@ -33,7 +29,6 @@
                 android:textSize="13sp"
                 android:alpha="0.7" />
         </LinearLayout>
-
         <ImageButton
             android:id="@+id/btnEdit"
             android:layout_width="40dp"
@@ -41,7 +36,6 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_edit"
             app:srcCompat="@drawable/ic_edit" />
-
         <ImageButton
             android:id="@+id/btnDelete"
             android:layout_width="40dp"
@@ -49,6 +43,5 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_delete"
             app:srcCompat="@drawable/ic_delete" />
-
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

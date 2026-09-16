@@ -1,5 +1,4 @@
 package com.example.geonapominalka.ui
-
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,18 +10,15 @@ import com.example.geonapominalka.databinding.ActivityTaskEditBinding
 import com.example.geonapominalka.util.Constants
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.Locale
-
 /**
  * Экран создания/редактирования напоминания (п.1.2, 1.3 ТЗ).
  * Координаты доступны только для чтения; их можно поменять только
  * через кнопку "Выбрать на карте" (MapPickerActivity).
  */
 class TaskEditActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityTaskEditBinding
     private lateinit var viewModel: TaskEditViewModel
     private var editingId: Long = 0L
-
     private val pickOnMap = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val data = result.data ?: return@registerForActivityResult
         val lat = data.getDoubleExtra(Constants.EXTRA_PICKED_LAT, Double.NaN)
@@ -31,16 +27,13 @@ class TaskEditActivity : AppCompatActivity() {
             viewModel.updateCoordinates(lat, lng)
         }
     }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTaskEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
         val app = GeoApp.from(this)
         viewModel = ViewModelProvider(this, TaskEditViewModel.Factory(app.reminderRepository))[TaskEditViewModel::class.java]
-
         editingId = intent.getLongExtra(Constants.EXTRA_EDIT_REMINDER_ID, 0L)
         if (editingId != 0L) {
             title = getString(R.string.title_task_edit)
@@ -57,7 +50,6 @@ class TaskEditActivity : AppCompatActivity() {
                 binding.descriptionField.setText(address)
             }
         }
-
         viewModel.reminder.observe(this) { reminder ->
             reminder ?: return@observe
             binding.coordinatesText.text = getString(
@@ -73,9 +65,7 @@ class TaskEditActivity : AppCompatActivity() {
                 binding.radiusField.setText(reminder.radius.toString())
             }
         }
-
         viewModel.saved.observe(this) { saved -> if (saved) finish() }
-
         binding.btnPickOnMap.setOnClickListener {
             val current = viewModel.reminder.value
             val intent = Intent(this, MapPickerActivity::class.java).apply {
@@ -86,11 +76,9 @@ class TaskEditActivity : AppCompatActivity() {
             }
             pickOnMap.launch(intent)
         }
-
         binding.btnSave.setOnClickListener { onSaveClicked() }
         binding.btnDelete.setOnClickListener { confirmDelete() }
     }
-
     private fun onSaveClicked() {
         val name = binding.nameField.text?.toString()?.trim().orEmpty()
         if (name.isEmpty()) {
@@ -102,7 +90,6 @@ class TaskEditActivity : AppCompatActivity() {
         val radius = binding.radiusField.text?.toString()?.toIntOrNull() ?: 200
         viewModel.save(name, description, radius)
     }
-
     private fun confirmDelete() {
         val name = binding.nameField.text?.toString()?.trim()?.ifBlank { null }
             ?: viewModel.reminder.value?.name.orEmpty()
@@ -115,7 +102,6 @@ class TaskEditActivity : AppCompatActivity() {
             .setNegativeButton(R.string.action_no) { d, _ -> d.dismiss() }
             .show()
     }
-
     private fun buildDeleteConfirmationMessage(name: String, description: String?): String = buildString {
         append(getString(R.string.dialog_delete_task_name_line, name))
         if (!description.isNullOrBlank()) {
@@ -123,7 +109,6 @@ class TaskEditActivity : AppCompatActivity() {
             append(getString(R.string.dialog_delete_task_description_line, description))
         }
     }
-
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true

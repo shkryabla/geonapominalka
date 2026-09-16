@@ -1,9 +1,7 @@
 package com.example.geonapominalka.util
-
 import com.google.android.gms.location.DetectedActivity
 import kotlin.math.max
 import kotlin.math.min
-
 /**
  * Расчёт интервала опроса местоположения по адаптивному алгоритму (см. обсуждение с
  * пользователем — формула, приоритеты правил и защита от деления на ноль зафиксированы
@@ -17,7 +15,6 @@ import kotlin.math.min
  *    интервал сокращается вдвое от прогноза, чтобы не пропустить вход в зону.
  */
 object AdaptiveIntervalCalculator {
-
     /**
      * @param distanceToNearestMeters расстояние до ЦЕНТРА ближайшей активной задачи
      * @param nearestRadiusMeters радиус этой задачи (для прогноза timeToZone)
@@ -34,11 +31,9 @@ object AdaptiveIntervalCalculator {
     ): Int {
         // 1. Защита от деления на ноль — скорость не может быть ниже минимального порога
         val safeVelocity = max(velocityMps, Constants.ADAPTIVE_MIN_VELOCITY_MPS)
-
         // 2. Базовый интервал по формуле, расстояние — всегда до центра задачи
         val rawInterval = distanceToNearestMeters / (safeVelocity * Constants.ADAPTIVE_K)
         var interval = clamp(rawInterval)
-
         // 3. Корректировка по активности. IN_VEHICLE побеждает всегда, даже если
         //    формально v < 0.5 (например, стоит в пробке на светофоре с работающим двигателем) —
         //    машина может тронуться в любой момент, риск пропустить зону важнее экономии.
@@ -50,7 +45,6 @@ object AdaptiveIntervalCalculator {
             else -> interval
         }
         interval = clamp(interval)
-
         // 4. Прогноз входа в зону: если скорость заметна и мы приближаемся к зоне быстрее,
         //    чем сработает уже посчитанный интервал — сокращаем интервал вдвое от прогноза.
         if (velocityMps > Constants.ADAPTIVE_SLOW_SPEED_THRESHOLD_MPS && distanceToNearestMeters > nearestRadiusMeters) {
@@ -59,20 +53,16 @@ object AdaptiveIntervalCalculator {
                 interval = max(timeToZone / 2.0, Constants.ADAPTIVE_MIN_INTERVAL_SEC.toDouble())
             }
         }
-
         return clamp(interval).toInt()
     }
-
     private fun clamp(value: Double): Double =
         min(max(value, Constants.ADAPTIVE_MIN_INTERVAL_SEC.toDouble()), Constants.ADAPTIVE_MAX_INTERVAL_SEC.toDouble())
-
     /** true, если разница между новым и текущим интервалом больше порога — стоит пересоздать LocationRequest. */
     fun shouldUpdate(currentIntervalSeconds: Int, newIntervalSeconds: Int): Boolean {
         if (currentIntervalSeconds <= 0) return true
         val diffRatio = kotlin.math.abs(newIntervalSeconds - currentIntervalSeconds).toDouble() / currentIntervalSeconds
         return diffRatio > Constants.ADAPTIVE_INTERVAL_CHANGE_THRESHOLD
     }
-
     /** Типовая скорость по распознанной активности — "предпочтительный способ" оценки v по ТЗ. */
     fun speedForActivity(activityType: Int): Double = when (activityType) {
         DetectedActivity.STILL -> Constants.SPEED_STILL_MPS
@@ -82,7 +72,6 @@ object AdaptiveIntervalCalculator {
         DetectedActivity.IN_VEHICLE -> Constants.SPEED_IN_VEHICLE_MPS
         else -> Constants.SPEED_DEFAULT_MPS
     }
-
     /** true для "движущихся" типов активности — нужно для триггера STILL -> движение. */
     fun isMoving(activityType: Int): Boolean = activityType in setOf(
         DetectedActivity.WALKING, DetectedActivity.ON_FOOT, DetectedActivity.RUNNING,

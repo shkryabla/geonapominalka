@@ -1,7 +1,9 @@
 package com.example.geonapominalka.ui
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
@@ -25,9 +27,22 @@ class SettingsActivity : AppCompatActivity() {
     private val pickRingtone = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            // Без persistable-разрешения content:// URI из пикера читается только сразу после
+            // выбора. К моменту показа уведомления (уже из сервиса, часто в другом процессе/
+            // после рестарта) доступ к файлу теряется, и система молча откатывается на звук
+            // по умолчанию — из приложения казалось, что выбор "не применяется".
+            if (uri != null) {
+                try {
+                    contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (e: SecurityException) {
+                    // Некоторые провайдеры (не все системные рингтоны) не поддерживают persistable-грант —
+                    // тогда звук отыграет только до следующей перезагрузки, ничего страшнее не произойдёт.
+                }
+            }
             lifecycleScope.launch {
                 app.settingsRepository.setSoundUri(uri?.toString())
                 NotificationChannels.rebuildReminderChannel(this@SettingsActivity, uri, binding.switchVibration.isChecked)
+                updateCurrentSoundLabel(uri)
             }
         }
     }
@@ -55,6 +70,7 @@ class SettingsActivity : AppCompatActivity() {
         setupVibration()
         setupSound()
         setupReset()
+        setupBackgroundWorkLink()
     }
     private fun setupTheme() {
         lifecycleScope.launch {
@@ -154,9 +170,7 @@ class SettingsActivity : AppCompatActivity() {
      */
     private fun setupMapStyle() {
         val idByStyle = mapOf(
-            TileSources.MapStyle.LIGHT to R.id.radioStyleLight,
             TileSources.MapStyle.VOYAGER to R.id.radioStyleVoyager,
-            TileSources.MapStyle.SATELLITE to R.id.radioStyleSatellite,
             TileSources.MapStyle.HYBRID to R.id.radioStyleHybrid
         )
         val styleById = idByStyle.entries.associate { (style, id) -> id to style }
@@ -186,14 +200,23 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
     private fun setupSound() {
+        lifecycleScope.launch {
+            val soundUri = app.settingsRepository.soundUri.first()?.let { Uri.parse(it) }
+            updateCurrentSoundLabel(soundUri)
+        }
         binding.btnChooseSound.setOnClickListener {
-            val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                 putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
                 putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
                 putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
             }
             pickRingtone.launch(intent)
         }
+    }
+    /** Показывает название выбранного звука — чтобы было видно, что выбор применился. */
+    private fun updateCurrentSoundLabel(uri: Uri?) {
+        val name = uri?.let { Ringtone.getTitle(this, it, false, true) } ?: getString(R.string.sound_default)
+        binding.currentSoundLabel.text = getString(R.string.label_current_sound, name)
     }
     private fun setupReset() {
         binding.btnResetData.setOnClickListener {
@@ -205,6 +228,16 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 .setNegativeButton(R.string.action_no) { d, _ -> d.dismiss() }
                 .show()
+        }
+    }
+    /** Постоянно доступная ссылка на системные настройки — для устройств, где агрессивная
+     *  батарейная оптимизация прошивки мешает приходу уведомлений при заблокированном экране. */
+    private fun setupBackgroundWorkLink() {
+        binding.btnOpenAppSettings.setOnClickListener {
+            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", packageName, null)
+            }
+            startActivity(intent)
         }
     }
     override fun onSupportNavigateUp(): Boolean {

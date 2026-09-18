@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">напомниТут</string>
-    <string name="notification_channel_name">Гео-напоминания</string>
-    <string name="notification_channel_description">Уведомления о входе в зону напоминания</string>
-    <string name="reminder_channel_name">Приход в зону</string>
-    <string name="reminder_channel_description">Уведомление о срабатывании гео-напоминания</string>
+    <string name="notification_channel_name">Фоновый режим</string>
+    <string name="notification_channel_description">Уведомление о работе сервиса геолокации</string>
+    <string name="reminder_channel_name">Гео-напоминания</string>
+    <string name="reminder_channel_description">Уведомление о приходе в зону напоминания</string>
     <string name="foreground_notification_title">напомниТут активно</string>
     <string name="title_task_edit">Редактирование задачи</string>
     <string name="title_task_create">Новое напоминание</string>
@@ -42,6 +42,8 @@
     <string name="action_done">Выполнено</string>
     <string name="action_snooze">Отложить</string>
     <string name="action_choose_sound">Выбрать звук уведомления</string>
+    <string name="label_current_sound">Текущий звук: %1$s</string>
+    <string name="sound_default">Стандартный</string>
     <string name="action_reset_data">Сбросить все данные</string>
     <string name="label_coordinates">Координаты</string>
     <string name="coordinates_format">%1$.5f, %2$.5f</string>
@@ -64,10 +66,8 @@
     <string name="interval_300s">5 минут</string>
     <string name="interval_600s">10 минут</string>
     <string name="interval_1200s">20 минут</string>
-    <string name="map_style_light">Обычная (светлая)</string>
     <string name="map_style_voyager">Цветная (Voyager)</string>
-    <string name="map_style_satellite">Спутник</string>
-    <string name="map_style_hybrid">Гибрид (спутник + подписи)</string>
+    <string name="map_style_hybrid">Спутник + подписи</string>
     <string name="marker_radius_snippet">Радиус: %1$d м</string>
     <string name="error_name_required">Укажите имя</string>
     <string name="msg_location_required">Для работы приложения нужен доступ к геолокации</string>
@@ -83,11 +83,9 @@
     <string name="dialog_force_close_message">Приложение полностью закроется, сервис геолокации будет остановлен. Уведомления по активным задачам не придут, пока вы не откроете приложение снова. Продолжить?</string>
     <string name="dialog_force_close_message_no_tasks">Приложение и все его процессы будут полностью завершены. Продолжить?</string>
     <string name="dialog_permissions_title">Нужны разрешения</string>
-    <string name="dialog_permissions_message">Чтобы приложение отслеживало ваши гео-напоминания и присылало уведомления вовремя, нужны разрешения на геолокацию, на показ уведомлений и на распознавание активности (для адаптивной экономии батареи — приложение реже опрашивает GPS, когда вы стоите на месте, и чаще — когда двигаетесь). Сейчас будут показаны системные запросы — подтвердите их. Следующим шагом отдельно запросим разрешение на геолокацию «в любом режиме» — это важно, объясним подробнее.</string>
+    <string name="dialog_permissions_message">Чтобы приложение отслеживало ваши гео-напоминания и присылало уведомления вовремя, нужны разрешения на геолокацию, на показ уведомлений и на распознавание активности (для адаптивной экономии батареи — приложение реже опрашивает GPS, когда вы стоите на месте, и чаще — когда двигаетесь). Сейчас будут показаны системные запросы — подтвердите их.\n\nЭтого обычно достаточно, чтобы уведомления приходили даже при заблокированном экране. Если на вашем устройстве (особенно Xiaomi, Huawei и похожих прошивках) уведомления о приходе в зону всё же не приходят — откройте «Настройки → Фоновая работа» в этом приложении: там объяснено, что проверить.</string>
     <string name="action_continue">Продолжить</string>
-    <string name="dialog_background_location_title">Геолокация «в любом режиме»</string>
-    <string name="dialog_background_location_message">Это самое важное разрешение для приложения. Напоминание срабатывает, когда вы физически входите в зону задачи — а это обычно происходит уже после того, как вы закрыли приложение и занимаетесь своими делами. Без разрешения «Разрешить в любом режиме» (не «только во время использования») Android на современных версиях просто перестаёт отдавать приложению координаты, как только экран приложения не открыт — и уведомление о задаче не придёт вообще, даже если вы физически стоите рядом с нужным местом.\n\nНа следующем экране выберите «Разрешить всегда» (или «В любое время»). Если такого варианта нет на первом экране — используйте кнопку «Открыть настройки» ниже и выберите его там вручную.</string>
-    <string name="action_grant">Разрешить</string>
-    <string name="action_open_settings">Открыть настройки</string>
-    <string name="action_not_now">Не сейчас</string>
+    <string name="label_background_work">Фоновая работа</string>
+    <string name="label_background_work_hint">Приложению не требуется разрешение «Разрешить всегда» — координаты поступают через фоновую службу, пока есть активные задачи, даже при заблокированном экране. Если уведомления о приходе в зону всё же не приходят — на некоторых устройствах (Xiaomi, Huawei и похожих) помогает вручную выдать геолокацию «в любом режиме» и снять приложение с оптимизации батареи в системных настройках.</string>
+    <string name="action_open_app_settings">Открыть настройки приложения</string>
 </resources>

@@ -62,9 +62,7 @@
             android:id="@+id/mapStyleGroup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-            <RadioButton android:id="@+id/radioStyleLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/map_style_light" />
             <RadioButton android:id="@+id/radioStyleVoyager" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/map_style_voyager" />
-            <RadioButton android:id="@+id/radioStyleSatellite" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/map_style_satellite" />
             <RadioButton android:id="@+id/radioStyleHybrid" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/map_style_hybrid" />
         </RadioGroup>
         <com.google.android.material.materialswitch.MaterialSwitch
@@ -80,6 +78,13 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="@string/action_choose_sound" />
+        <TextView
+            android:id="@+id/currentSoundLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:alpha="0.7"
+            android:textSize="13sp" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnResetData"
             style="@style/Widget.Material3.Button.TextButton"
@@ -88,5 +93,25 @@
             android:layout_marginTop="32dp"
             android:text="@string/action_reset_data"
             android:textColor="?attr/colorError" />
+        <TextView
+            style="@style/TextAppearance.Material3.TitleMedium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="@string/label_background_work" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:alpha="0.7"
+            android:text="@string/label_background_work_hint"
+            android:textSize="13sp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenAppSettings"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/action_open_app_settings" />
     </LinearLayout>
 </ScrollView>

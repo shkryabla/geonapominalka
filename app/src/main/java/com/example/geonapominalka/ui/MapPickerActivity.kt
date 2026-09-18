@@ -25,7 +25,7 @@ class MapPickerActivity : AppCompatActivity() {
         setContentView(binding.root)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         map = binding.mapView
-        map.setTileSource(com.example.geonapominalka.util.TileSources.cartoLight)
+        map.setTileSource(com.example.geonapominalka.util.TileSources.cartoVoyager)
         map.setMultiTouchControls(true)
         val initialLat = intent.getDoubleExtra(Constants.EXTRA_INITIAL_LAT, 0.0)
         val initialLng = intent.getDoubleExtra(Constants.EXTRA_INITIAL_LNG, 0.0)

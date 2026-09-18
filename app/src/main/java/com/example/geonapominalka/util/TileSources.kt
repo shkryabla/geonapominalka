@@ -31,18 +31,6 @@ object TileSources {
     /** Дописывает API-ключ CARTO к готовому URL тайла, если ключ задан (иначе — водяной знак). */
     private fun withCartoKey(url: String): String =
         if (BuildConfig.CARTO_API_KEY.isNotBlank()) "$url?key=${BuildConfig.CARTO_API_KEY}" else url
-    /** Минималистичная светлая схема CARTO Positron — быстрая, без номеров домов. */
-    val cartoLight: ITileSource = object : XYTileSource(
-        "CartoLight", 0, 19, 256, ".png",
-        arrayOf(
-            "https://a.basemaps.cartocdn.com/light_all/",
-            "https://b.basemaps.cartocdn.com/light_all/",
-            "https://c.basemaps.cartocdn.com/light_all/",
-            "https://d.basemaps.cartocdn.com/light_all/"
-        )
-    ) {
-        override fun getTileURLString(pMapTileIndex: Long): String = withCartoKey(super.getTileURLString(pMapTileIndex))
-    }
     /** Более "цветной" и подробный стиль CARTO Voyager (больше POI, но тоже без номеров домов). */
     val cartoVoyager: ITileSource = object : XYTileSource(
         "CartoVoyager", 0, 19, 256, ".png",
@@ -84,12 +72,10 @@ object TileSources {
     }
     /** Порядок пунктов в переключателе на карте и в настройках — должен совпадать в обоих местах. */
     enum class MapStyle(val tileSource: ITileSource, val isHybrid: Boolean = false) {
-        LIGHT(cartoLight),
         VOYAGER(cartoVoyager),
-        SATELLITE(esriSatellite),
         HYBRID(esriSatellite, isHybrid = true);
         companion object {
-            fun fromIndex(index: Int): MapStyle = entries.getOrElse(index) { LIGHT }
+            fun fromIndex(index: Int): MapStyle = entries.getOrElse(index) { VOYAGER }
         }
     }
 }

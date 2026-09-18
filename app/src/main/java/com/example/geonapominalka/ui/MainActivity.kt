@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var myLocationOverlay: MyLocationNewOverlay
     // reminder.id -> Marker, чтобы удалять/сопоставлять при клике
     private val markerByReminderId = HashMap<Long, Marker>()
-    private var currentStyle = TileSources.MapStyle.LIGHT
+    private var currentStyle = TileSources.MapStyle.VOYAGER
     // Оверлей подписей для гибридного режима (снимок + названия/дороги поверх)
     private var labelsOverlay: TilesOverlay? = null
     // Маркер результата поиска адреса — один на экран, обновляется при новом поиске
@@ -62,14 +62,10 @@ class MainActivity : AppCompatActivity() {
         val fineGranted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true
         if (fineGranted) {
             enableMyLocationLayer()
-            requestBackgroundPermissionIfNeeded()
         } else {
             Toast.makeText(this, R.string.msg_location_required, Toast.LENGTH_LONG).show()
         }
     }
-    private val requestBackgroundPermission = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { /* фон - опционально, приложение продолжит работать в активном режиме */ }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -89,6 +85,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupMap() {
         map = binding.mapView
         map.setMultiTouchControls(true)
+        map.setTilesScaledToDpi(true) // подписи/иконки крупнее на плотных экранах — тайлы CARTO/Esri рассчитаны на 96dpi
         map.controller.setZoom(14.0)
         map.controller.setCenter(GeoPoint(55.7558, 37.6173)) // запасной центр, если геопозиция недоступна — сместится на неё сразу, как получим координаты
         // Долгий тап по карте -> создание напоминания (п.1.2 ТЗ)
@@ -415,10 +412,6 @@ class MainActivity : AppCompatActivity() {
     private fun hasFineLocationPermission(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
-    private fun hasBackgroundLocationPermission(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
     private fun hasNotificationPermission(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
@@ -428,15 +421,12 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) ==
             PackageManager.PERMISSION_GRANTED
     /**
-     * При первом запуске (и при каждом последующем, пока не выдано) объясняем, зачем нужны
-     * разрешения, и запрашиваем их по шагам, как требует Android 10+:
-     * 1) геолокация переднего плана + уведомления + распознавание активности — одним заходом;
-     * 2) фоновая геолокация — ОТДЕЛЬНЫМ системным запросом сразу после (одновременно с
-     *    первым запросить нельзя — система молча проигнорирует). Перед этим шагом показываем
-     *    отдельный диалог с объяснением, почему это разрешение обязательно, а не опционально:
-     *    без него foreground-сервис на Android 14+ перестаёт получать координаты, как только
-     *    пользователь уходит с экрана приложения — то есть уведомления о задачах просто
-     *    не придут.
+     * Разрешения переднего плана запрашиваются одним заходом. Фоновая геолокация
+     * ("Разрешить в любом режиме") больше не запрашивается — foreground-сервис с
+     * foregroundServiceType="location" (см. манифест) получает координаты и при
+     * заблокированном экране без неё. Возможные исключения из этого правила —
+     * агрессивная батарейная оптимизация некоторых прошивок (Xiaomi, Huawei и т.п.) —
+     * описаны пользователю в тексте диалога ниже и повторно доступны в настройках.
      */
     private fun requestAllPermissionsIfNeeded() {
         val foregroundGranted = hasFineLocationPermission() && hasNotificationPermission() && hasActivityRecognitionPermission()
@@ -452,7 +442,6 @@ class MainActivity : AppCompatActivity() {
                 .show()
         } else {
             enableMyLocationLayer()
-            requestBackgroundPermissionIfNeeded()
         }
     }
     private fun requestRuntimePermissions() {
@@ -467,35 +456,6 @@ class MainActivity : AppCompatActivity() {
             permissions.add(Manifest.permission.ACTIVITY_RECOGNITION)
         }
         requestPermissions.launch(permissions.toTypedArray())
-    }
-    /**
-     * Отдельный диалог именно про "Разрешить в любом режиме" — показываем на каждом запуске,
-     * пока разрешение не выдано (сознательно, по просьбе — это критично для работы приложения,
-     * не косметика). Кнопка "Открыть настройки" — подстраховка для устройств, где системный
-     * диалог не предлагает нужный вариант напрямую (так бывает на некоторых прошивках).
-     */
-    private fun requestBackgroundPermissionIfNeeded() {
-        if (hasBackgroundLocationPermission()) return
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.dialog_background_location_title)
-            .setMessage(R.string.dialog_background_location_message)
-            .setCancelable(false)
-            .setPositiveButton(R.string.action_grant) { dialog, _ ->
-                dialog.dismiss()
-                requestBackgroundPermission.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-            }
-            .setNeutralButton(R.string.action_open_settings) { dialog, _ ->
-                dialog.dismiss()
-                openAppSettings()
-            }
-            .setNegativeButton(R.string.action_not_now) { dialog, _ -> dialog.dismiss() }
-            .show()
-    }
-    private fun openAppSettings() {
-        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = android.net.Uri.fromParts("package", packageName, null)
-        }
-        startActivity(intent)
     }
     override fun onResume() {
         super.onResume()

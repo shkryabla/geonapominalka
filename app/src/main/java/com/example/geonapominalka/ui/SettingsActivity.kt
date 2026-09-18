@@ -3,7 +3,6 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
@@ -215,7 +214,9 @@ class SettingsActivity : AppCompatActivity() {
     }
     /** Показывает название выбранного звука — чтобы было видно, что выбор применился. */
     private fun updateCurrentSoundLabel(uri: Uri?) {
-        val name = uri?.let { Ringtone.getTitle(this, it, false, true) } ?: getString(R.string.sound_default)
+        val name = uri
+            ?.let { RingtoneManager.getRingtone(this, it)?.getTitle(this) }
+            ?: getString(R.string.sound_default)
         binding.currentSoundLabel.text = getString(R.string.label_current_sound, name)
     }
     private fun setupReset() {

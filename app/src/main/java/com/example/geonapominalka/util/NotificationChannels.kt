@@ -43,6 +43,13 @@ object NotificationChannels {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.deleteNotificationChannel(Constants.REMINDER_CHANNEL_ID)
         manager.createNotificationChannel(buildReminderChannel(context, soundUri, vibrationEnabled))
+        // Диагностика: система может молча откатить звук на стандартный, если Uri
+        // оказался недоступен на момент создания канала — без этого лога это незаметно.
+        val actualSound = manager.getNotificationChannel(Constants.REMINDER_CHANNEL_ID)?.sound
+        AppLogger.log(
+            "NotifyChannel",
+            "Запрошен звук: $soundUri; фактически сохранён в канале: $actualSound"
+        )
     }
 
     private fun buildReminderChannel(context: Context, soundUri: Uri?, vibrationEnabled: Boolean): NotificationChannel {

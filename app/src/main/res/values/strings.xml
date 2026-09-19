@@ -42,6 +42,7 @@
     <string name="action_done">Выполнено</string>
     <string name="action_snooze">Отложить</string>
     <string name="action_choose_sound">Выбрать звук уведомления</string>
+    <string name="msg_sound_import_failed">Не удалось использовать этот файл как звук уведомления</string>
     <string name="label_current_sound">Текущий звук: %1$s</string>
     <string name="sound_default">Стандартный</string>
     <string name="action_reset_data">Сбросить все данные</string>

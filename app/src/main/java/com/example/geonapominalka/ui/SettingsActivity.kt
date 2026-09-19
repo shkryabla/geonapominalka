@@ -15,6 +15,7 @@ import com.example.geonapominalka.GeoApp
 import com.example.geonapominalka.R
 import com.example.geonapominalka.databinding.ActivitySettingsBinding
 import com.example.geonapominalka.util.NotificationChannels
+import com.example.geonapominalka.util.NotificationSoundImporter
 import com.example.geonapominalka.util.TileSources
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.first
@@ -25,23 +26,21 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var app: GeoApp
     private val pickRingtone = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-            // Без persistable-разрешения content:// URI из пикера читается только сразу после
-            // выбора. К моменту показа уведомления (уже из сервиса, часто в другом процессе/
-            // после рестарта) доступ к файлу теряется, и система молча откатывается на звук
-            // по умолчанию — из приложения казалось, что выбор "не применяется".
-            if (uri != null) {
-                try {
-                    contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                } catch (e: SecurityException) {
-                    // Некоторые провайдеры (не все системные рингтоны) не поддерживают persistable-грант —
-                    // тогда звук отыграет только до следующей перезагрузки, ничего страшнее не произойдёт.
-                }
-            }
+            val pickedUri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
             lifecycleScope.launch {
-                app.settingsRepository.setSoundUri(uri?.toString())
-                NotificationChannels.rebuildReminderChannel(this@SettingsActivity, uri, binding.switchVibration.isChecked)
-                updateCurrentSoundLabel(uri)
+                // NotificationChannel.setSound() понимает только content:// — на некоторых
+                // прошивках (MIUI и др.) пикер отдаёт file:// напрямую, система такой Uri
+                // читать не может и молча подставляет звук по умолчанию. Регистрируем файл
+                // в MediaStore, чтобы получить валидный content:// Uri.
+                val playableUri = pickedUri?.let { NotificationSoundImporter.toPlayableUri(this@SettingsActivity, it) }
+                if (pickedUri != null && playableUri == null) {
+                    android.widget.Toast.makeText(
+                        this@SettingsActivity, R.string.msg_sound_import_failed, android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+                app.settingsRepository.setSoundUri(playableUri?.toString())
+                NotificationChannels.rebuildReminderChannel(this@SettingsActivity, playableUri, binding.switchVibration.isChecked)
+                updateCurrentSoundLabel(playableUri)
             }
         }
     }
